@@ -5,8 +5,8 @@ CC=gcc
 SDLFLAGS=$(shell sdl-config --cflags)
 
 # Comment this line and uncomment the next to get Julia fractals
-CFLAGS=-c -Wall -O2 $(SDLFLAGS)
-# CFLAGS=-c -Wall -O2 -DJULIA $(SDLFLAGS)
+# CFLAGS=-c -Wall -O2 $(SDLFLAGS)
+CFLAGS=-c -Wall -O2 -DJULIA $(SDLFLAGS)
 # CFLAGS=-c -Wall -ggdb $(SDLFLAGS)
 
 # Libs!

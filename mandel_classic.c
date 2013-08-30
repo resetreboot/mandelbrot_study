@@ -243,6 +243,8 @@ int julia_point(int res_x, int res_y, int image_x, int image_y, float zoom, int 
     }
 }
 
+
+// Splits the image in pieces and calls the corresponding algorithm
 void *thread_launcher(void *arguments)
 {
     piece_args *args;
@@ -251,9 +253,13 @@ void *thread_launcher(void *arguments)
     int x,y, small_res_x, small_res_y, init_x, init_y, limit_x, limit_y;
     int iteration, split, piece_x, piece_y;
 
-    if(args->total_threads != 1)
+    if(args->total_threads > 2)
     {
-        split = args->total_threads / 2;
+        split = sqrt(args->total_threads);
+    }
+    else if (args->total_threads == 2)
+    {
+        split = 2;
     }
     else
     {
@@ -311,9 +317,10 @@ int main(int argn, char **argv)
     int res_x = 800;
     int res_y = 600;
 
-    int number_threads = get_cpus();
+    int number_cores = get_cpus();
+    int number_threads = number_cores * number_cores;
 
-    printf("Number of threads autodetect: %d\n", number_threads);
+    printf("Number of CPUs/cores autodetected: %d\n", number_cores);
 
 #ifdef CACHE
     // Init our cached points

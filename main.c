@@ -42,7 +42,6 @@ int main(int argn, char **argv) {
         blue_scale[i] = 255 - i;   
     }
 
-
     // Load the kernel source code into the array source_str
     FILE *fp;
     char *source_str;
