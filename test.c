@@ -105,7 +105,6 @@ int julia_point(int res_x, int res_y, int image_x, int image_y, double zoom, int
     double pos_y = map_y(image_y, res_y, 1.0);
     double x = pos_x;
     double y = pos_y;
-    double q, x_term;
     double xtemp, xx, yy;
 #ifdef CACHE
     int storeable = 1;
@@ -165,7 +164,6 @@ int main(int argn, char **argv) {
     SDL_Surface *screen;
     int res_x = 800;
     int res_y = 600;
-    int total_res = res_x * res_y;
 
 #ifdef CACHE
     // Init our cached points
@@ -205,8 +203,6 @@ int main(int argn, char **argv) {
 
     // Prepare the resolution and sizes and colors...
     int i;
-    int temp;
-    const int ITERATIONS = 256;
 
     printf("Rendering...\n");
 
@@ -228,7 +224,7 @@ int main(int argn, char **argv) {
         {
             max_iteration = 255;
         }
-        int col_value;
+
         Uint32 *pixel;
         int rank;
         // Lock surface

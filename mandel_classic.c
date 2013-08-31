@@ -251,7 +251,7 @@ void *thread_launcher(void *arguments)
     args = (piece_args *) arguments;
 
     int x,y, small_res_x, small_res_y, init_x, init_y, limit_x, limit_y;
-    int iteration, split, piece_x, piece_y;
+    int split, piece_x, piece_y;
 
     if(args->total_threads > 2)
     {
@@ -359,7 +359,6 @@ int main(int argn, char **argv)
 	    fprintf(stderr,"Could not set video mode: %s\n",SDL_GetError());
 
     // Prepare the resolution and sizes and colors, threads...
-    int i;
     iteration_pixels = malloc(res_x * res_y * sizeof(int));
     pthread_t threads[number_threads];
     piece_args arguments[number_threads];
@@ -374,7 +373,6 @@ int main(int argn, char **argv)
     for (zoom = 1.0; zoom > -2.5 ; zoom -= 0.01)
 #endif
     {
-        i = 0;
         int iteration, max_iteration, x, y, res;
         if((zoom < -0.02) && (zoom > -1.0))
         {
