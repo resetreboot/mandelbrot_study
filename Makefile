@@ -18,7 +18,7 @@ LIBS=-lm -lpthread $(SDLLIBS)
 
 INCLUDE=-I/usr/include/SDL -I./
 
-all: mandelclassic clfract test
+all: mandelclassic clfract test clfractinteractive
 
 mandelclassic: mandel_classic.o
 	$(CC) $(INCLUDE) mandel_classic.o $(LIBS) -o  mandelclassic
@@ -31,6 +31,12 @@ clfract: clfract.o
 
 clfract.o: main.c
 	$(CC) $(CFLAGS) $(INCLUDE) $(LIBS) $(OPENCLLIBS) main.c -o clfract.o
+
+clfractinteractive: clfractinteractive.o
+	$(CC) $(INCLUDE) clfractinteractive.o $(LIBS) $(OPENCLLIBS) -o clfractinteractive
+
+clfractinteractive.o: interactive.c
+	$(CC) $(CFLAGS) $(INCLUDE) $(LIBS) $(OPENCLLIBS) interactive.c -o clfractinteractive.o
 
 test: test.o
 	$(CC) $(INCLUDE) test.o $(LIBS) -o test
