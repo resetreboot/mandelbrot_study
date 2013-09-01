@@ -330,6 +330,7 @@ int main(int argn, char **argv)
     else if ((argn == 2) && (strcmp(argv[1], "-julia") == 0))
     {
         julia_mode = 1;
+        printf("Julia mode activated.\n");
     }
 
     int number_cores = get_cpus();
