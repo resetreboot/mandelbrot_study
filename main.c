@@ -25,14 +25,23 @@ int main(int argn, char **argv) {
     int res_x = 800;
     int res_y = 600;
     int current_line = 0;
-    int total_res = res_x * res_y;
+    int julia_mode = 0;
+
+    if (argn == 1)
+    {
+        julia_mode = 0;
+    }
+    else if ((argn == 2) && (strcmp(argv[1], "-julia") == 0))
+    {
+        julia_mode = 1;
+        printf("Julia mode activated...\n");
+    }
 
     screen = SDL_SetVideoMode(res_x, res_y, 0, SDL_DOUBLEBUF);
     if(!screen)
 	    fprintf(stderr,"Could not set video mode: %s\n",SDL_GetError());
 
     // Prepare the resolution and sizes and colors...
-    int i;
     const int ITERATIONS = 256;
 
     // Load the kernel source code into the array source_str
@@ -40,7 +49,11 @@ int main(int argn, char **argv) {
     char *source_str;
     size_t source_size;
 
-    fp = fopen("mandelbrot_kernel.cl", "r");
+    if (julia_mode == 0)
+        fp = fopen("mandelbrot_kernel.cl", "r");
+    else
+        fp = fopen("julia_kernel.cl", "r");
+
     if (!fp) {
         fprintf(stderr, "Failed to load kernel.\n");
         exit(1);
@@ -101,19 +114,23 @@ int main(int argn, char **argv) {
     printf("program built\n");
 
     // Create the OpenCL kernel
-    cl_kernel kernel = clCreateKernel(program, "mandelbrot_point", &ret);
+    cl_kernel kernel = clCreateKernel(program, "fractal_point", &ret);
 
     // Common kernel params
     ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *) &kernel_res_x);
     ret = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *) &kernel_res_y);
     ret = clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *) &graph_mem_obj);
 
-    // Our screen in a linear array
-    int graph_dots[total_res]; // = (int*)malloc(total_res * sizeof(int)); 
     int graph_line[res_x];  // (int*)malloc(res_x * sizeof(int));
-    float zoom;             // Our current zoom level
+    float zoom = 1.0;             // Our current zoom level
+    float stop_point;
 
-    for(zoom = 1.0; zoom > 0.00001; zoom = zoom * 0.98)
+    if (julia_mode == 0)
+        stop_point = 0.00001;
+    else
+        stop_point = -2.5;
+
+    while(zoom > stop_point) 
     {
         for (current_line = 0; current_line < res_y; current_line++)
         {
@@ -137,8 +154,8 @@ int main(int argn, char **argv) {
 
             if (ret != CL_SUCCESS)
             {
-                printf("Error while executing kernel\n");
-                printf("Error code %d\n", ret);
+                // printf("Error while executing kernel\n");
+                // printf("Error code %d\n", ret);
             }
 
             // Wait for the computation to finish
@@ -154,53 +171,51 @@ int main(int argn, char **argv) {
             clFinish(command_queue);
 
             int line_count;
+            Uint32 *pixel;
+            // Lock surface
+            // SDL_LockSurface(screen);
+            // rank = screen->pitch/sizeof(Uint32);
+            pixel = (Uint32*)screen->pixels;
+            int iteration;
+
             for (line_count = 0; line_count < res_x; line_count++)
             {
-                int temp_val = graph_line[line_count];
-                graph_dots[(current_line * res_x) + line_count] = temp_val;
+                // int temp_val = graph_line[line_count];
+                // graph_dots[(current_line * res_x) + line_count] = temp_val;
+                // Get the iterations for the point
+                // printf("Point %d\n", i);
+                iteration = graph_line[line_count];
+                if ((iteration < 128) && (iteration > 0)) {
+                    pixel[(current_line * res_x) + line_count] = SDL_MapRGBA(screen->format,
+                                           0,
+                                           20 + iteration,
+                                           0,
+                                           255);
+                }
+                else if ((iteration >= 128) && (iteration < ITERATIONS))
+                {
+                    pixel[(current_line * res_x) + line_count] = SDL_MapRGBA(screen->format,
+                                           iteration,
+                                           148,
+                                           iteration,
+                                           255);
+                }
+                else
+                {
+                    pixel[(current_line * res_x) + line_count] = SDL_MapRGBA(screen->format,
+                                                       0,
+                                                       0,
+                                                       0,
+                                                       255);
+                } 
             }
         }
+        if (julia_mode == 0)
+            zoom = zoom * 0.98;
+        else
+            zoom -= 0.01;
 
-        int iteration;
-        Uint32 *pixel;
-        // Lock surface
-        // SDL_LockSurface(screen);
-        // rank = screen->pitch/sizeof(Uint32);
-        pixel = (Uint32*)screen->pixels;
-        /* Draw all dots */
-        for(i = 0;i < total_res;i++)
-        {
-            // Get the iterations for the point
-            // printf("Point %d\n", i);
-            iteration = graph_dots[i];
-            if ((iteration < 128) && (iteration > 0)) {
-                pixel[i] = SDL_MapRGBA(screen->format,
-                                       0,
-                                       20 + iteration,
-                                       0,
-                                       255);
-            }
-            else if ((iteration >= 128) && (iteration < ITERATIONS))
-            {
-                pixel[i] = SDL_MapRGBA(screen->format,
-                                       iteration,
-                                       148,
-                                       iteration,
-                                       255);
-            }
-            else
-            {
-                pixel[i] = SDL_MapRGBA(screen->format,
-                                                   0,
-                                                   0,
-                                                   0,
-                                                   255);
-            } 
-        }
-        // Unlock surface
-        // SDL_UnlockSurface(screen);
-
-        // Draw to the scree
+        // Draw to the screen
         SDL_Flip(screen);
     }
 

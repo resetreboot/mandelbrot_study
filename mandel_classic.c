@@ -38,6 +38,7 @@ struct piece_args
     int max_iteration;
     int total_threads;
     int thread_number;
+    int julia_mode;
 };
 
 
@@ -51,13 +52,15 @@ int get_y (int linear_point, int height)
     return floor(linear_point / height);
 }
 
-float map_x(int x, int width, float zoom)
+float map_x_mandelbrot(int x, int width, float zoom)
 {
-#ifndef JULIA
     return (((float)x / (float)width) * (3.5 * zoom)) - (2.5 - (1.0 - zoom));
-#else
     return (((float)x / (float)width) * (3.5 * zoom)) - (1.75 - (1.0 - zoom));
-#endif
+}
+
+float map_x_julia(int x, int width, float zoom)
+{
+    return (((float)x / (float)width) * (3.5 * zoom)) - (1.75 - (1.0 - zoom));
 }
 
 float map_y(int y, int height, float zoom)
@@ -124,7 +127,7 @@ void store_iteration(float pos_x, float pos_y, int iteration, float x, float y)
 int mandelbrot_point(int res_x, int res_y, int image_x, int image_y, float zoom, int max_iteration)
 {
     // Get the index of the current element
-    float pos_x = map_x(image_x, res_x, zoom);
+    float pos_x = map_x_mandelbrot(image_x, res_x, zoom);
     float pos_y = map_y(image_y, res_y, zoom);
     float x = 0.0;
     float y = 0.0;
@@ -191,7 +194,7 @@ int mandelbrot_point(int res_x, int res_y, int image_x, int image_y, float zoom,
 int julia_point(int res_x, int res_y, int image_x, int image_y, float zoom, int max_iteration)
 {
     // Get the index of the current element
-    float pos_x = map_x(image_x, res_x, 1.0);
+    float pos_x = map_x_julia(image_x, res_x, 1.0);
     float pos_y = map_y(image_y, res_y, 1.0);
     float x = pos_x;
     float y = pos_y;
@@ -288,11 +291,10 @@ void *thread_launcher(void *arguments)
     {
         for (x = init_x; x < limit_x; x++)
         {
-#ifndef JULIA
+            if(args->julia_mode == 0)
                 iteration_pixels[x + (y * args->res_x)] = mandelbrot_point(args->res_x, args->res_y, x, y, args->zoom, args->max_iteration);
-#else
+            else
                 iteration_pixels[x + (y * args->res_x)] = julia_point(args->res_x, args->res_y, x, y, args->zoom, args->max_iteration);
-#endif
         }
     }
 }
@@ -316,6 +318,16 @@ int main(int argn, char **argv)
     SDL_Surface *screen;
     int res_x = 800;
     int res_y = 600;
+    int julia_mode = 0;
+
+    if(argn == 1)
+    {
+        julia_mode = 0;
+    } 
+    else if ((argn == 2) && (strcmp(argv[1], "-julia") == 0))
+    {
+        julia_mode = 1;
+    }
 
     int number_cores = get_cpus();
     int number_threads = number_cores * number_cores;
@@ -365,13 +377,15 @@ int main(int argn, char **argv)
 
     printf("Rendering...\n");
 
-    float zoom;
+    float zoom = 1.0;
+    float stop_point;
 
-#ifndef JULIA
-    for (zoom = 1.0; zoom > 0.0001 ; zoom = zoom * 0.98)
-#else
-    for (zoom = 1.0; zoom > -2.5 ; zoom -= 0.01)
-#endif
+    if (julia_mode == 0)
+        stop_point = 0.00001;
+    else
+        stop_point = -2.5;
+
+    while(zoom > stop_point)
     {
         int iteration, max_iteration, x, y, res;
         if((zoom < -0.02) && (zoom > -1.0))
@@ -393,6 +407,7 @@ int main(int argn, char **argv)
             arguments[thread_count].max_iteration = max_iteration;
             arguments[thread_count].total_threads = number_threads;
             arguments[thread_count].thread_number = thread_count;
+            arguments[thread_count].julia_mode = julia_mode;
             pthread_create( &threads[thread_count], NULL, thread_launcher, (void*) &arguments[thread_count]);
         }
 
@@ -440,6 +455,11 @@ int main(int argn, char **argv)
                 } 
             }
         }
+
+        if(julia_mode == 0)
+            zoom = zoom * 0.99;
+        else
+            zoom -= 0.01; 
 
         SDL_Flip(screen);
     }

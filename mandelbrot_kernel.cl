@@ -8,7 +8,7 @@ float map_y(int y, int height, float zoom)
     return (((float)y / (float)height) * (2.0 * zoom)) - (1.00001 - (1.0 - zoom));
 }
 
-__kernel void mandelbrot_point(__global const int *res_x, 
+__kernel void fractal_point(__global const int *res_x, 
                                __global const int *res_y, 
                                __global const int *line, 
                                __global const float *zoom, 
