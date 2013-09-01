@@ -11,6 +11,7 @@
 #endif
 
 #include <SDL.h>
+#include <SDL_ttf.h>
 
 #define MAX_SOURCE_SIZE (0x100000)
 
@@ -23,7 +24,7 @@ int main(int argn, char **argv) {
     printf("SDL Initialized\n");
 
     // Create screen surface
-    SDL_Surface *screen;
+    SDL_Surface *screen, *message;
     int res_x = 800;
     int res_y = 600;
     int current_line = 0;
@@ -42,6 +43,29 @@ int main(int argn, char **argv) {
     screen = SDL_SetVideoMode(res_x, res_y, 0, SDL_DOUBLEBUF);
     if(!screen)
 	    fprintf(stderr,"Could not set video mode: %s\n",SDL_GetError());
+
+    // Set the title bar
+    SDL_WM_SetCaption("CLFract", "CLFract");
+
+    //Initialize SDL_ttf
+    if( TTF_Init() == -1 )
+    { 
+        printf("Error setting up TTF module.\n");
+        return 1; 
+    }
+
+    // Load a font
+    TTF_Font *font;
+    font = TTF_OpenFont("font.ttf", 24);
+    if (font == NULL)
+    {
+        printf("TTF_OpenFont() Failed: %s", TTF_GetError());
+        SDL_Quit();
+        return 1;
+    }
+
+    //The color of the font 
+    SDL_Color textColor = { 255, 255, 255 };
 
     // Prepare the resolution and sizes and colors...
     const int ITERATIONS = 256;
@@ -214,10 +238,22 @@ int main(int argn, char **argv) {
                 } 
             }
         }
+
+        // Step, iterate our zoom levels if we're doing mandelbrot or julia set
         if (julia_mode == 0)
             zoom = zoom * 0.98;
         else
             zoom -= 0.01;
+
+        // Draw message on a corner...
+        char* msg = (char *)malloc(100 * sizeof(char));
+        sprintf(msg, "Zoom level: %0.3f", zoom * 100.0);
+        message = TTF_RenderText_Solid( font, msg, textColor );
+        free(msg);
+        if (message != NULL)
+            SDL_BlitSurface(message, NULL, screen, NULL);
+
+        free(message);
 
         // Draw to the screen
         SDL_Flip(screen);

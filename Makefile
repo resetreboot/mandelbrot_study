@@ -4,13 +4,12 @@ CC=gcc
 # Flags!
 SDLFLAGS=$(shell sdl-config --cflags)
 
-# Comment this line and uncomment the next to get Julia fractals
+# Comment this line and uncomment the next to get debug symbols
 CFLAGS=-c -Wall -O2 $(SDLFLAGS)
-# CFLAGS=-c -Wall -O2 -DJULIA $(SDLFLAGS)
 # CFLAGS=-c -Wall -ggdb $(SDLFLAGS)
 
 # Libs!
-SDLLIBS=$(shell sdl-config --libs)
+SDLLIBS=$(shell sdl-config --libs) -lSDL_ttf
 OPENCLLIBS=-lOpenCL
 
 LIBS=-lm -lpthread $(SDLLIBS)
