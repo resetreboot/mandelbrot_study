@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include <time.h>
+
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
 #else
@@ -130,6 +132,8 @@ int main(int argn, char **argv) {
     else
         stop_point = -2.5;
 
+    clock_t start = clock();
+
     while(zoom > stop_point) 
     {
         for (current_line = 0; current_line < res_y; current_line++)
@@ -218,6 +222,8 @@ int main(int argn, char **argv) {
         // Draw to the screen
         SDL_Flip(screen);
     }
+
+    printf("Time elapsed %0.5f seconds\n", ((double)clock() - start) / CLOCKS_PER_SEC);
 
     // Clean up
     ret = clFlush(command_queue);

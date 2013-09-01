@@ -4,6 +4,8 @@
 #include <pthread.h>
 #include <math.h>
 
+#include <time.h>
+
 #include <SDL.h>
 
 #define MAX_SOURCE_SIZE (0x100000)
@@ -386,6 +388,9 @@ int main(int argn, char **argv)
     else
         stop_point = -2.5;
 
+    // We measure the time to do the zooming
+    clock_t start = clock();
+
     while(zoom > stop_point)
     {
         int iteration, max_iteration, x, y, res;
@@ -465,7 +470,7 @@ int main(int argn, char **argv)
         SDL_Flip(screen);
     }
 
-    // printf("Max Iteration value: %d\n", max_iter);
+    printf("Time elapsed %0.5f seconds\n", ((double)clock() - start) / CLOCKS_PER_SEC);
 
     SDL_Event ev;
     int active;
