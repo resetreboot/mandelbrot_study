@@ -21,19 +21,39 @@ __kernel void fractal_point(__global const int *res_x,
     float pos_y = map_y(image_y, *res_y, *zoom);
     float x = 0.0;
     float y = 0.0;
+    float q, x_term;
+
+    // Period-2 bulb check 
+    if (((pos_x + 1.0) * (pos_x + 1.0) + pos_y * pos_y) < 0.0625)
+    {
+        graph_line[image_x] = 0;
+        return;
+    }
+
+    // Cardioid check
+    x_term = pos_x - 0.25;
+    q = x_term * x_term + pos_y * pos_y;
+    q = q * (q + x_term);
+    if (q < (0.25 * pos_y * pos_y))
+    {
+        graph_line[image_x] = 0;
+        return;
+    }
 
     int iteration = 0;
     int max_iteration = 256;
-    float xtemp, xx, yy;
+    float xtemp, xx, yy, xplusy;
 
     while (iteration < max_iteration)
     {
        xx = x * x;
        yy = y * y;
+       xplusy = x + y;
        if ((xx) + (yy) > (4.0)) break;
 
        xtemp = xx - yy + pos_x;
-       y = 2.0 * x * y + pos_y;
+       y = xplusy * xplusy - xx - yy;
+       y = y + pos_y;
 
        x = xtemp;
        iteration++;

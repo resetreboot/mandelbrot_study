@@ -131,23 +131,23 @@ int mandelbrot_point(int res_x, int res_y, int image_x, int image_y, float zoom,
     float pos_y = map_y(image_y, res_y, zoom);
     float x = 0.0;
     float y = 0.0;
-    float q, x_term;
-    float xtemp, xx, yy;
+    float q, x_term, pos_y2;
+    float xtemp, xx, yy, xplusy;
 #ifdef CACHE
     int storeable = 1;
 #endif
     int iteration = 0;
 
-    yy = y * y;
-
     // Period-2 bulb check 
-    if (((x + 1) * (x + 1) + yy) < 0.0625) return 0;
+    x_term = pos_x + 1.0;
+    pos_y2 = pos_y * pos_y;
+    if ((x_term * x_term + pos_y2) < 0.0625) return 0;
 
     // Cardioid check
-    x_term = x - 0.25;
-    q = x_term * x_term + yy;
+    x_term = pos_x - 0.25;
+    q = x_term * x_term + pos_y2;
     q = q * (q + x_term);
-    if (q > (0.25 * yy)) return 0; 
+    if (q < (0.25 * pos_y2)) return 0; 
 
 #ifdef CACHE
     // Look up our cache
@@ -165,13 +165,14 @@ int mandelbrot_point(int res_x, int res_y, int image_x, int image_y, float zoom,
     while (iteration < max_iteration)
     {
         xx = x * x;
+        yy = y * y;
+        xplusy = x + y;
         if ((xx) + (yy) > (4.0)) break;
-        y = (x + y) * (x + y) - xx - yy;
+        y = xplusy * xplusy - xx - yy;
         y = y + pos_y;
         xtemp = xx - yy + pos_x;
 
         x = xtemp;
-        yy = y * y;
         iteration++;
     }
 
