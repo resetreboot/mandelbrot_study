@@ -40,12 +40,27 @@ int main(int argn, char **argv) {
         printf("Julia mode activated...\n");
     }
 
-    screen = SDL_SetVideoMode(res_x, res_y, 0, SDL_DOUBLEBUF);
-    if(!screen)
+    SDL_Window *window = SDL_CreateWindow("CLFract",
+                                           SDL_WINDOWPOS_UNDEFINED,
+                                           SDL_WINDOWPOS_UNDEFINED,
+                                           res_x, res_y, 0);
+
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
+
+    if ((!window) || (!renderer))
 	    fprintf(stderr,"Could not set video mode: %s\n",SDL_GetError());
 
-    // Set the title bar
-    SDL_WM_SetCaption("CLFract", "CLFract");
+    // Blank the window
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    SDL_RenderPresent(renderer);
+
+    SDL_Texture *texture_screen = SDL_CreateTexture(renderer,
+                                                   SDL_PIXELFORMAT_ARGB8888,
+                                                   SDL_TEXTUREACCESS_STREAMING,
+                                                   res_x, res_y);
+
+    screen = SDL_CreateRGBSurface(0, res_x, res_y , 32, 0, 0, 0, 0);
 
     //Initialize SDL_ttf
     if( TTF_Init() == -1 )
@@ -255,8 +270,12 @@ int main(int argn, char **argv) {
 
         free(message);
 
+        SDL_UpdateTexture(texture_screen, NULL, (Uint32*)screen->pixels, 800 * sizeof (Uint32));
+        SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer, texture_screen, NULL, NULL);
+        SDL_RenderPresent(renderer);
         // Draw to the screen
-        SDL_Flip(screen);
+        // SDL_Flip(screen);
     }
 
     printf("Time elapsed %0.5f seconds\n", ((double)clock() - start) / CLOCKS_PER_SEC);

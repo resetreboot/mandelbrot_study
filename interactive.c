@@ -15,19 +15,21 @@
 
 #define MAX_SOURCE_SIZE (0x100000)
 
-float map_x_mandelbrot(int x, int width, float zoom)
+float map_x_mandelbrot(float x, int width, float zoom)
 {
-    return (((float)x / (float)width) * (3.5 * zoom)) - 2.5;
+    // return (((float)x / (float)width) * (3.5 * zoom)) - 2.5;
+    return ((x / (float)width) * (3.5 * zoom));
 }
 
-float map_x_julia(int x, int width, float zoom)
+float map_x_julia(float x, int width, float zoom)
 {
-    return (((float)x / (float)width) * (3.5 * zoom)) - 1.75;
+    return ((x / (float)width) * (3.5 * zoom)) - 1.75;
 }
 
-float map_y(int y, int height, float zoom)
+float map_y(float y, int height, float zoom)
 {
-    return (((float)y / (float)height) * (2.0 * zoom)) - 1.0;
+    // return (((float)y / (float)height) * (2.0 * zoom)) - 1.0;
+    return ((y / (float)height) * (2.0 * zoom));
 }
 
 int main(int argn, char **argv) {
@@ -55,12 +57,27 @@ int main(int argn, char **argv) {
         printf("Julia mode activated...\n");
     }
 
-    screen = SDL_SetVideoMode(res_x, res_y, 0, SDL_DOUBLEBUF);
-    if(!screen)
+    SDL_Window *window = SDL_CreateWindow("MandelClassic",
+                                           SDL_WINDOWPOS_UNDEFINED,
+                                           SDL_WINDOWPOS_UNDEFINED,
+                                           res_x, res_y, 0);
+
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
+
+    if ((!window) || (!renderer))
 	    fprintf(stderr,"Could not set video mode: %s\n",SDL_GetError());
 
-    // Set the title bar
-    SDL_WM_SetCaption("CLFract", "CLFract");
+    // Blank the window
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    SDL_RenderPresent(renderer);
+
+    SDL_Texture *texture_screen = SDL_CreateTexture(renderer,
+                                                   SDL_PIXELFORMAT_ARGB8888,
+                                                   SDL_TEXTUREACCESS_STREAMING,
+                                                   res_x, res_y);
+
+    screen = SDL_CreateRGBSurface(0, res_x, res_y , 32, 0, 0, 0, 0);
 
     //Initialize SDL_ttf
     if( TTF_Init() == -1 )
@@ -172,6 +189,8 @@ int main(int argn, char **argv) {
     float stop_point;
     float center_x = 2.5;
     float center_y = 1.75;
+    float mouse_x = res_x / 2;
+    float mouse_y = res_y / 2;
 
     if (julia_mode == 0)
         stop_point = 0.00001;
@@ -249,26 +268,26 @@ int main(int argn, char **argv) {
                 iteration = graph_line[line_count];
                 if ((iteration < 128) && (iteration > 0)) {
                     pixel[(current_line * res_x) + line_count] = SDL_MapRGBA(screen->format,
-                                           0,
-                                           20 + iteration,
-                                           0,
-                                           255);
+                                                                               0,
+                                                                               20 + iteration,
+                                                                               0,
+                                                                               255);
                 }
                 else if ((iteration >= 128) && (iteration < ITERATIONS))
                 {
                     pixel[(current_line * res_x) + line_count] = SDL_MapRGBA(screen->format,
-                                           iteration,
-                                           148,
-                                           iteration,
-                                           255);
+                                                                               iteration,
+                                                                               148,
+                                                                               iteration,
+                                                                               255);
                 }
                 else
                 {
                     pixel[(current_line * res_x) + line_count] = SDL_MapRGBA(screen->format,
-                                                       0,
-                                                       0,
-                                                       0,
-                                                       255);
+                                                                               0,
+                                                                               0,
+                                                                               0,
+                                                                               255);
                 } 
             }
         }
@@ -291,13 +310,10 @@ int main(int argn, char **argv) {
                 {
                     motion = -1;
                 }
+                
+                mouse_x = ( (float) button.x - ((float) res_x / 2.0) ) / 10.0;
+                mouse_y = ( (float) button.y - ((float) res_y / 2.0) ) / 10.0; 
 
-                if (julia_mode == 0)
-                    center_x = map_x_mandelbrot(button.x, res_x, zoom);
-                else
-                    center_x = map_x_julia(button.x, res_x, zoom);
-
-                center_y = map_y(button.y, res_y, zoom);
             }
             else if ( (ev.type == SDL_MOUSEBUTTONUP) )
             {
@@ -322,6 +338,16 @@ int main(int argn, char **argv) {
                 zoom += 0.01;
         }
 
+        if (motion != 0)
+        {
+            if (julia_mode == 0)
+                center_x = map_x_mandelbrot(center_x + mouse_x, res_x, zoom);
+            else
+                center_x = map_x_julia(center_x + mouse_x, res_x, zoom);
+
+            center_y = map_y(center_y + mouse_y, res_y, zoom);
+        }
+
         // Draw message on a corner...
         char* msg = (char *)malloc(100 * sizeof(char));
         sprintf(msg, "Zoom level: %0.3f", zoom * 100.0);
@@ -332,8 +358,12 @@ int main(int argn, char **argv) {
 
         free(message);
 
+        SDL_UpdateTexture(texture_screen, NULL, (Uint32*)screen->pixels, 800 * sizeof (Uint32));
+        SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer, texture_screen, NULL, NULL);
+        SDL_RenderPresent(renderer);
         // Draw to the screen
-        SDL_Flip(screen);
+        // SDL_Flip(screen);
     }
 
     // Clean up

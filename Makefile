@@ -2,21 +2,21 @@
 CC=gcc
 
 # Flags!
-SDLFLAGS=$(shell sdl-config --cflags)
+SDLFLAGS=$(shell sdl2-config --cflags)
 
 # Comment this line and uncomment the next to get debug symbols
 CFLAGS=-c -Wall -O2 $(SDLFLAGS)
 # CFLAGS=-c -Wall -ggdb $(SDLFLAGS)
 
 # Libs!
-SDLLIBS=$(shell sdl-config --libs) -lSDL_ttf
+SDLLIBS=$(shell sdl2-config --libs) -lSDL2_ttf
 OPENCLLIBS=-lOpenCL
 
 LIBS=-lm -lpthread $(SDLLIBS)
 
 # Includes!
 
-INCLUDE=-I/usr/include/SDL -I./
+INCLUDE=-I/usr/include/SDL2 -I./
 
 all: mandelclassic clfract test clfractinteractive
 
