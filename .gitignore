@@ -1,6 +1,7 @@
-CL
+CL/
 *.o
 *.swp
 mandelclassic
 clfract
+clfractinteractive
 test

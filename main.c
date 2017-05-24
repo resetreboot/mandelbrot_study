@@ -16,7 +16,7 @@
 #define MAX_SOURCE_SIZE (0x100000)
 
 int main(int argn, char **argv) {
-    
+
     // Init SDL
     if(SDL_Init(SDL_INIT_VIDEO) != 0)
         fprintf(stderr, "Could not initialize SDL: %s\n", SDL_GetError());
@@ -64,9 +64,9 @@ int main(int argn, char **argv) {
 
     //Initialize SDL_ttf
     if( TTF_Init() == -1 )
-    { 
+    {
         printf("Error setting up TTF module.\n");
-        return 1; 
+        return 1;
     }
 
     // Load a font
@@ -79,7 +79,7 @@ int main(int argn, char **argv) {
         return 1;
     }
 
-    //The color of the font 
+    //The color of the font
     SDL_Color textColor = { 255, 255, 255 };
 
     // Prepare the resolution and sizes and colors...
@@ -105,20 +105,20 @@ int main(int argn, char **argv) {
 
     // Get platform and device information
     cl_platform_id platform_id = NULL;
-    cl_device_id device_id = NULL;   
+    cl_device_id device_id = NULL;
     cl_uint ret_num_devices;
     cl_uint ret_num_platforms;
     cl_int ret = clGetPlatformIDs(1, &platform_id, &ret_num_platforms);
-    ret = clGetDeviceIDs( platform_id, CL_DEVICE_TYPE_GPU, 1, 
+    ret = clGetDeviceIDs( platform_id, CL_DEVICE_TYPE_GPU, 1,
             &device_id, &ret_num_devices);
 
     // Create an OpenCL context
     cl_context context = clCreateContext( NULL, 1, &device_id, NULL, NULL, &ret);
 
     // Create a command queue
-    cl_command_queue command_queue = clCreateCommandQueue(context, device_id, 0, &ret);
+    cl_command_queue command_queue = clCreateCommandQueueWithProperties(context, device_id, 0, &ret);
 
-    // Create memory buffers on the device for returning iterations 
+    // Create memory buffers on the device for returning iterations
     // Input parameters
     cl_mem kernel_res_x = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
             sizeof(int), &res_x, &ret);
@@ -127,35 +127,48 @@ int main(int argn, char **argv) {
     cl_mem kernel_current_line = clCreateBuffer(context, CL_MEM_READ_ONLY,
             sizeof(int), NULL, &ret);
     cl_mem kernel_zoom_level = clCreateBuffer(context, CL_MEM_READ_ONLY,
-            sizeof(float), NULL, &ret); 
+            sizeof(float), NULL, &ret);
     // Output buffer
-    cl_mem graph_mem_obj = clCreateBuffer(context, CL_MEM_WRITE_ONLY, 
+    cl_mem graph_mem_obj = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
             res_x * sizeof(int), NULL, &ret);
 
     // Create a program from the kernel source
-    cl_program program = clCreateProgramWithSource(context, 1, 
+    cl_program program = clCreateProgramWithSource(context, 1,
             (const char **)&source_str, (const size_t *)&source_size, &ret);
 
     // Build the program
     ret = clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
 
-    // Check if it is correct
-    printf("clBuildProgram\n");
-    cl_build_status build_status;
-    ret = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_STATUS, sizeof(cl_build_status), &build_status, NULL);
+    if (ret != CL_SUCCESS) {
+        printf("Program build failed, error code: %d", ret);
 
-    char *build_log;
-    size_t ret_val_size;
-    ret = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
+        // Check if it is correct
+        printf("clBuildProgram\n");
+        cl_build_status build_status;
+        ret = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_STATUS, sizeof(cl_build_status), &build_status, NULL);
 
-    build_log = (char *) malloc((ret_val_size + 1) * sizeof(char));
-    ret = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
-                                build_log[ret_val_size] = '\0';
-    printf("BUILD LOG: \n %s", build_log);
+        char *build_log;
+        size_t ret_val_size;
+        ret = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &ret_val_size);
+
+        build_log = (char *) malloc((ret_val_size + 1) * sizeof(char));
+        ret = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
+                                    build_log[ret_val_size] = '\0';
+
+        printf("BUILD LOG: \n %s", build_log);
+        exit(1);
+
+    }
+
     printf("program built\n");
 
     // Create the OpenCL kernel
     cl_kernel kernel = clCreateKernel(program, "fractal_point", &ret);
+
+    if (ret != CL_SUCCESS) {
+        printf("Error when loading the kernel: %d", ret);
+        exit(1);
+    }
 
     // Common kernel params
     ret = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *) &kernel_res_x);
@@ -173,7 +186,7 @@ int main(int argn, char **argv) {
 
     clock_t start = clock();
 
-    while(zoom > stop_point) 
+    while(zoom > stop_point)
     {
         for (current_line = 0; current_line < res_y; current_line++)
         {
@@ -187,25 +200,34 @@ int main(int argn, char **argv) {
             clFinish(command_queue);
 
             ret = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *) &kernel_current_line);
+            if (ret != CL_SUCCESS) {
+                printf("Error setting current_line %d", ret);
+                exit(1);
+            }
             ret = clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *) &kernel_zoom_level);
-            
+            if (ret != CL_SUCCESS) {
+                printf("Error setting zoom_level %d", ret);
+                exit(1);
+            }
+
             // Execute the OpenCL kernel on the list
             size_t global_item_size = res_x; // Process the entire line
-            size_t local_item_size = 32; // Process in groups of 64
-            ret = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, 
+            size_t local_item_size = 16; // Process in groups of 64
+            ret = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL,
                     &global_item_size, &local_item_size, 0, NULL, NULL);
 
             if (ret != CL_SUCCESS)
             {
-                // printf("Error while executing kernel\n");
-                // printf("Error code %d\n", ret);
+                printf("Error while executing kernel\n");
+                printf("Error code %d\n", ret);
+                exit(1);
             }
 
             // Wait for the computation to finish
             clFinish(command_queue);
 
             // Read the memory buffer graph_mem_obj on the device to the local variable graph_dots
-            ret = clEnqueueReadBuffer(command_queue, graph_mem_obj, CL_TRUE, 0, 
+            ret = clEnqueueReadBuffer(command_queue, graph_mem_obj, CL_TRUE, 0,
                     res_x * sizeof(int), graph_line, 0, NULL, NULL);
 
             if (ret != CL_SUCCESS)
@@ -250,7 +272,7 @@ int main(int argn, char **argv) {
                                                        0,
                                                        0,
                                                        255);
-                } 
+                }
             }
         }
 

@@ -1,1 +1,0 @@
-/opt/intel/opencl-1.2-3.0.67279/include/CL

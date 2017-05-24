@@ -10,15 +10,16 @@ CFLAGS=-c -Wall -O2 $(SDLFLAGS)
 
 # Libs!
 SDLLIBS=$(shell sdl2-config --libs) -lSDL2_ttf
-OPENCLLIBS=-lOpenCL
+OPENCLLIBS=-lOpenCL -L/opt/AMDAPPSDK-3.0/lib/x86_64
 
 LIBS=-lm -lpthread $(SDLLIBS)
 
 # Includes!
 
-INCLUDE=-I/usr/include/SDL2 -I./
+INCLUDE=-I/usr/include/SDL2 -I./ -I/opt/intel/opencl-sdk/include
 
-all: mandelclassic clfract test clfractinteractive
+# all: mandelclassic clfract test clfractinteractive
+all: mandelclassic clfract clfractinteractive
 
 mandelclassic: mandel_classic.o
 	$(CC) $(INCLUDE) mandel_classic.o $(LIBS) -o  mandelclassic
